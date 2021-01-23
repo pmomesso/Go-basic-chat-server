@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"strings"
@@ -150,8 +151,10 @@ func connectionHandler(conn net.Conn, s *server) {
 }
 
 func main() {
+	flagPointer := flag.String("port", "1234", "port number")
+	flag.Parse()
 	//Open tcp server
-	ln, err := net.Listen("tcp", ":1234") //hardcode port for now
+	ln, err := net.Listen("tcp", ":"+*flagPointer)
 	if err != nil {
 		panic(err)
 	}
