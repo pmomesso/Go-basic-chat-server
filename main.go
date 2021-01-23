@@ -1,17 +1,42 @@
 package main
 
 import (
+	"fmt"
 	"net"
+	"strings"
 )
 
+const CMD_NICK = "iam"
+const CMD_WHO = "whoami"
+
+type client struct {
+	name string
+}
+
+func newClient() (ret client) {
+	ret = client{name: "unkown"}
+	return ret
+}
+
 func connectionHandler(conn net.Conn) {
-	buff := make([]byte, 1)
+	buff := make([]byte, 50)
+	c := newClient()
 	for {
+		//Suppose that the entirety of the received bytes constitute a message
 		n, err := conn.Read(buff)
 		if err != nil {
 			panic(err)
 		}
-		conn.Write(buff[:n])
+		command := strings.Split(string(buff[:n-1]), " ")
+		switch command[0] {
+		case CMD_NICK:
+			c.name = command[1]
+			conn.Write([]byte(fmt.Sprintf("Ok, i will call you %s from now on\n", c.name)))
+		case CMD_WHO:
+			conn.Write([]byte(fmt.Sprintf("You are %s\n", c.name)))
+		default:
+			conn.Write([]byte(fmt.Sprintf("I am sorry, I do not understand\n")))
+		}
 	}
 }
 
