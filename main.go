@@ -6,36 +6,53 @@ import (
 	"strings"
 )
 
-const CMD_NICK = "iam"
-const CMD_WHO = "whoami"
+const cmdNick = "iam"
+const cmdWho = "whoami"
 
 type client struct {
 	name string
+	conn net.Conn
 }
 
-func newClient() (ret client) {
-	ret = client{name: "unkown"}
+func newClient(conn net.Conn) (ret client) {
+	ret = client{name: "unkown", conn: conn}
 	return ret
+}
+
+func getCommand(received []byte) []string {
+	return strings.Split(string(received), " ")
+}
+
+func (c *client) handleChangeNickname(newNickname string) {
+	c.name = newNickname
+	c.conn.Write([]byte(fmt.Sprintf("Ok, I will call you %s\n", c.name)))
+}
+
+func (c *client) handleTellNickName(newNickname string) {
+	c.conn.Write([]byte(fmt.Sprintf("You are %s\n", c.name)))
+}
+
+func (c *client) handleNotUnderstand() {
+	c.conn.Write([]byte("Sorry, I do not understand\n"))
 }
 
 func connectionHandler(conn net.Conn) {
 	buff := make([]byte, 50)
-	c := newClient()
+	c := newClient(conn)
 	for {
 		//Suppose that the entirety of the received bytes constitute a message
 		n, err := conn.Read(buff)
 		if err != nil {
 			panic(err)
 		}
-		command := strings.Split(string(buff[:n-1]), " ")
+		command := getCommand(buff[:n-1])
 		switch command[0] {
-		case CMD_NICK:
-			c.name = command[1]
-			conn.Write([]byte(fmt.Sprintf("Ok, i will call you %s from now on\n", c.name)))
-		case CMD_WHO:
-			conn.Write([]byte(fmt.Sprintf("You are %s\n", c.name)))
+		case cmdNick:
+			c.handleChangeNickname(command[1])
+		case cmdWho:
+			c.handleTellNickName(command[1])
 		default:
-			conn.Write([]byte(fmt.Sprintf("I am sorry, I do not understand\n")))
+			c.handleNotUnderstand()
 		}
 	}
 }
